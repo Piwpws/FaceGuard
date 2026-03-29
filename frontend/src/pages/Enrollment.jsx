@@ -145,7 +145,8 @@ const Enrollment = () => {
                 type="button" 
                 className="btn btn-success" 
                 onClick={capture}
-                disabled={images.length >= 3}
+                disabled={images.length >= 3 || !formData.firstName.trim() || !formData.lastName.trim()}
+                title={(!formData.firstName.trim() || !formData.lastName.trim()) ? "Please enter your First Name and Last Name first" : ""}
               >
                 <Camera size={18} /> Capture Face
               </button>
@@ -158,6 +159,12 @@ const Enrollment = () => {
                 <RefreshCw size={18} /> Reset
               </button>
           </div>
+          
+          {(!formData.firstName.trim() || !formData.lastName.trim()) && (
+             <p style={{ color: 'var(--error)', fontSize: '0.85rem', textAlign: 'center', marginTop: '1rem' }}>
+                 * Please fill in your Personal Details first to enable face capture.
+             </p>
+          )}
 
           {images.length > 0 && (
             <div className="capture-grid" style={{ marginTop: '2rem' }}>
