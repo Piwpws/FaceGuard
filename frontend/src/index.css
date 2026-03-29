@@ -121,6 +121,7 @@ h1.page-title {
   margin-bottom: 2rem;
   background: linear-gradient(to right, #ffffff, #94a3b8);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -236,6 +237,16 @@ tr:hover td {
   outline: none;
   border-color: var(--accent-base);
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: 0.7;
+  cursor: pointer;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
 }
 
 .form-select option {
