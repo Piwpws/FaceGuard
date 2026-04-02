@@ -1,13 +1,18 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import Webcam from 'react-webcam';
-import { Pencil, Camera, Trash2, X, AlertCircle, CheckCircle2, RefreshCw, Save } from 'lucide-react';
+import { Pencil, Camera, Trash2, X, AlertCircle, CheckCircle2, RefreshCw, Save, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const Maintenance = () => {
   const [enrollees, setEnrollees] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+
+  // Search & Pagination State
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   // Modals state
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -50,6 +55,26 @@ const Maintenance = () => {
     setErrorMsg(msg);
     setTimeout(() => setErrorMsg(''), 3000);
   };
+
+  // --- PAGINATION & FILTER LOGIC ---
+  const filteredEnrollees = enrollees.filter(enrollee => {
+    const term = searchTerm.toLowerCase();
+    const fullName = `${enrollee.first_name || ''} ${enrollee.last_name || ''}`.toLowerCase();
+    return (
+      (enrollee.id_number || '').toLowerCase().includes(term) ||
+      fullName.includes(term) ||
+      (enrollee.role || '').toLowerCase().includes(term)
+    );
+  });
+
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentEnrollees = filteredEnrollees.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredEnrollees.length / itemsPerPage);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   // --- EDIT PROFILE LOGIC ---
   const handleEditClick = (enrollee) => {
@@ -131,7 +156,20 @@ const Maintenance = () => {
 
   return (
     <div className="maintenance-page" style={{ paddingBottom: '2rem' }}>
-      <h1 className="page-title">File Maintenance</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <h1 className="page-title" style={{ margin: 0 }}>File Maintenance</h1>
+        <div style={{ position: 'relative', width: '350px', maxWidth: '100%' }}>
+          <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.5)' }} />
+          <input 
+            type="text" 
+            placeholder="Search by ID, Name, or Role..." 
+            className="form-input" 
+            style={{ paddingLeft: '2.75rem', borderRadius: '999px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+      </div>
 
       {errorMsg && (
         <div style={{ color: 'var(--error)', padding: '1rem', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '0.5rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -159,7 +197,7 @@ const Maintenance = () => {
               </tr>
             </thead>
             <tbody>
-              {enrollees.map(enrollee => (
+              {currentEnrollees.map(enrollee => (
                 <tr key={enrollee.id_number} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                   <td style={{ padding: '1rem' }}>{enrollee.id_number}</td>
                   <td style={{ padding: '1rem', fontWeight: '500' }}>{enrollee.first_name} {enrollee.last_name}</td>
@@ -202,13 +240,47 @@ const Maintenance = () => {
                   </td>
                 </tr>
               ))}
-              {enrollees.length === 0 && (
+              {currentEnrollees.length === 0 && (
                  <tr>
-                    <td colSpan="5" style={{ padding: '2rem', textAlign: 'center', opacity: 0.7 }}>No records found.</td>
+                    <td colSpan="5" style={{ padding: '2rem', textAlign: 'center', opacity: 0.7 }}>
+                      {enrollees.length === 0 ? "No records found." : "No matching records found for your search."}
+                    </td>
                  </tr>
               )}
             </tbody>
           </table>
+        )}
+        
+        {/* Pagination Controls */}
+        {!isLoading && totalPages > 1 && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+            <div style={{ fontSize: '0.875rem', opacity: 0.7 }}>
+              Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredEnrollees.length)} of {filteredEnrollees.length} entries
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <button 
+                type="button"
+                className="btn btn-outline" 
+                style={{ padding: '0.5rem 1rem', width: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              >
+                <ChevronLeft size={16} /> Prev
+              </button>
+              <div style={{ fontSize: '0.875rem', margin: '0 0.5rem' }}>
+                Page {currentPage} of {totalPages}
+              </div>
+              <button 
+                type="button"
+                className="btn btn-outline" 
+                style={{ padding: '0.5rem 1rem', width: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              >
+                Next <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
         )}
       </div>
 
