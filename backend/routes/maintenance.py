@@ -31,8 +31,18 @@ async def get_all_enrollees():
         raise HTTPException(status_code=500, detail="Database connection not configured.")
     
     try:
-        response = supabase.table("enrollees").select("id_number, first_name, last_name, role, created_at").order("created_at", desc=True).execute()
-        return response.data
+        # Fetch all, including face_encodings to determine active status
+        response = supabase.table("enrollees").select("id_number, first_name, last_name, role, created_at, face_encodings").order("created_at", desc=True).execute()
+        
+        active_enrollees = []
+        for e in response.data:
+            encodings = e.get("face_encodings")
+            # If face_encodings is empty, the user is considered soft-deleted/archived
+            if encodings and len(encodings) > 0:
+                e.pop("face_encodings", None)
+                active_enrollees.append(e)
+                
+        return active_enrollees
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -98,7 +108,9 @@ async def delete_enrollee(id_number: str):
         raise HTTPException(status_code=500, detail="Database connection not configured.")
         
     try:
-        response = supabase.table("enrollees").delete().eq("id_number", id_number).execute()
+        # Instead of hard delete, we perform a soft-delete by updating face_encodings to an empty array.
+        # This prevents the user from being matched during live scanning but retains their log history.
+        response = supabase.table("enrollees").update({"face_encodings": []}).eq("id_number", id_number).execute()
         
         if len(response.data) == 0:
             raise HTTPException(status_code=404, detail="Enrollee not found.")

@@ -10,9 +10,15 @@ async def get_dashboard_stats():
         return {"error": "Database not configured"}
         
     try:
-        # Total Enrolled
-        enrollees_res = supabase.table("enrollees").select("id, role", count="exact").execute()
-        total_enrolled = enrollees_res.count if enrollees_res.count else len(enrollees_res.data)
+        # Total Enrolled (active users only)
+        enrollees_res = supabase.table("enrollees").select("id, role, face_encodings").execute()
+        active_enrollees = []
+        for e in enrollees_res.data:
+            encodings = e.get("face_encodings")
+            if encodings and len(encodings) > 0:
+                active_enrollees.append(e)
+                
+        total_enrolled = len(active_enrollees)
         
         # Today's attendance
         today_str = datetime.now().date().isoformat()
